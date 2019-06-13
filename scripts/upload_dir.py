@@ -10,6 +10,7 @@ import os
 import sys
 import boto3
 import logging
+import argparse
 import threading
 
 from boto3.s3.transfer import TransferConfig
@@ -17,6 +18,18 @@ from botocore.exceptions import ClientError
 
 # set values
 GB = 1024 ** 3
+
+logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+# Ensure that multipart uploads only happen if the size of a transfer
+# is larger than S3's size limit for nonmultipart uploads, which is 5 GB.
+# Decrease the max concurrency from 10 to 5 to potentially consume
+# less downstream bandwidth.
+config = TransferConfig(multipart_threshold=1 * GB, max_concurrency=5)
 
 
 class ProgressPercentage(object):
@@ -48,70 +61,118 @@ class ProgressPercentage(object):
 def exists(client, bucket, key):
     try:
         client.head_object(Bucket=bucket, Key=key)
+
     except ClientError as e:
         return int(e.response['Error']['Code']) != 404
     return True
 
 
-# Ensure that multipart uploads only happen if the size of a transfer
-# is larger than S3's size limit for nonmultipart uploads, which is 5 GB.
-# Decrease the max concurrency from 10 to 5 to potentially consume
-# less downstream bandwidth.
-config = TransferConfig(multipart_threshold=1 * GB, max_concurrency=5)
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=('Upload data into digitalocean space')
+    )
 
-# upload directory as argument
-mydir = sys.argv[1]
+    parser.add_argument(
+        "-i",
+        "--input_dir",
+        help="Input directory to upload",
+        required=True
+    )
 
-# the space in question
-bucket = "exchange1"
+    parser.add_argument(
+        "-b",
+        "--bucket",
+        help="Space Bucket in which put files",
+        required=True
+    )
 
-logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        level=logging.INFO)
+    parser.add_argument(
+        "--service_name",
+        help="Service name (def '%(default)s')",
+        default='s3'
+    )
 
-logger = logging.getLogger(__name__)
+    parser.add_argument(
+        "--region_name",
+        help="Region name (def '%(default)s')",
+        default='fra1'
+    )
 
-logger.info("Got %s as directory" % mydir)
+    parser.add_argument(
+        "--space_key_name",
+        help="space key name",
+    )
 
-session = boto3.session.Session()
+    parser.add_argument(
+        "--space_key_secret",
+        help="space key secret",
+    )
 
-logger.info("connect to digitalocean endpoint")
+    args = parser.parse_args()
 
-client = session.client(
-    's3',
-    region_name='ams3',
-    endpoint_url='https://ams3.digitaloceanspaces.com/',
-    aws_access_key_id='***REMOVED***',
-    aws_secret_access_key='***REMOVED***')
+    if not args.space_key_name:
+        if 'DO_SPACE_KEY_NAME' in os.environ:
+            args.space_key_name = os.environ['DO_SPACE_KEY_NAME']
 
-# list buckets
-# print(client.list_buckets())
+        else:
+            raise Exception(
+                "You have to pass the '--space_key_name' argument or "
+                "set the DO_SPACE_KEY_NAME environment variable")
 
-for myfile in os.listdir(mydir):
-    path = os.path.join(mydir, myfile)
+    if not args.space_key_secret:
+        if 'DO_SPACE_KEY_SECRET' in os.environ:
+            args.space_key_secret = os.environ['DO_SPACE_KEY_SECRET']
 
-    if os.path.isdir(path):
-        logger.warning("Skipping %s: is a directory" % (path))
-        continue
+        else:
+            raise Exception(
+                "You have to pass the '--space_key_secret' argument or "
+                "set the DO_SPACE_KEY_SECRET environment variable")
 
-    if exists(client, bucket, path):
-        logger.warning("Skipping %s: already uploaded" % (path))
-        continue
+        return args
 
-    logger.info("Loading '%s' into '%s' space" % (path, bucket))
 
-    # upload a file
-    client.upload_file(
-        Bucket=bucket,
-        Filename=path,
-        Key=path,
-        Callback=ProgressPercentage(path))
+if __name__ == "__main__":
+    args = parse_args()
+
+    logger.info("Got %s as directory" % args.input_dir)
+
+    session = boto3.session.Session()
+
+    logger.info("connect to digitalocean endpoint")
+
+    client = session.client(
+        args.service_name,
+        region_name=args.region_name,
+        endpoint_url='https://{region}.digitaloceanspaces.com/'.format(
+            region=args.region_name),
+        aws_access_key_id=args.space_key_name,
+        aws_secret_access_key=args.space_key_secret)
+
+    for myfile in os.listdir(args.input_dir):
+        path = os.path.join(args.input_dir, myfile)
+
+        if os.path.isdir(path):
+            logger.warning("Skipping %s: is a directory" % (path))
+            continue
+
+        if exists(client, args.bucket, path):
+            logger.warning("Skipping %s: already uploaded" % (path))
+            continue
+
+        logger.info("Loading '%s' into '%s' space" % (path, args.bucket))
+
+        # upload a file
+        client.upload_file(
+            Bucket=args.bucket,
+            Filename=path,
+            Key=path,
+            Callback=ProgressPercentage(path))
+
+        # debug
+        # break
+
+    # list file
+    # print(client.list_objects(Bucket='excange'))
 
     # debug
-    # break
-
-# list file
-# print(client.list_objects(Bucket='excange'))
-
-# debug
-logger.info("Done!")
+    logger.info("Done!")
