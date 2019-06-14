@@ -1,0 +1,6 @@
+---
+- import_playbook: fruitbreedomics.yml
+
+# Import all other group playbooks in this file...
+
+...
