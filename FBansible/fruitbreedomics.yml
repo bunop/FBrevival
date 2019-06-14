@@ -1,8 +1,11 @@
 ---
 - hosts: fruitbreedomics
   roles:
-    - common
-    - anyrole
+    # install with: ansible-galaxy install andrewsomething.do-agent
+    - role: andrewsomething.do-agent
+      tags: do-agent
+    - packages
+
 
 # Associate further roles to servers in specific group in this file...
 

@@ -1,0 +1,11 @@
+---
+- name: Remove useless packages from the cache
+  shell: yum clean all
+  args:
+    warn: false
+  tags: clean
+
+- name: remove old packages
+  yum:
+    autoremove: yes
+  tags: clean

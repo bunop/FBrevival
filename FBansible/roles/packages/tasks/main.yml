@@ -1,0 +1,29 @@
+---
+- name: Add repository
+  yum_repository:
+    name: epel
+    description: EPEL YUM repo
+    baseurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+    gpgkey: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-$releasever
+  register: epel_installed
+  tags: ['packages', 'epel']
+
+- name: Upgrade all packages to the latest version
+  yum:
+    name: "*"
+    update_cache: yes
+    state: latest
+  tags: upgrade
+
+- name: Ensure a list of packages installed
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - htop
+    - git
+    - vim
+    - nano
+    - wget
+  when: epel_installed is success
+  tags: packages
