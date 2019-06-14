@@ -4,7 +4,10 @@
     # install with: ansible-galaxy install andrewsomething.do-agent
     - role: andrewsomething.do-agent
       tags: do-agent
+    - volume
     - packages
+    - role: andrewrothstein.miniconda
+      tags: miniconda
 
 
 # Associate further roles to servers in specific group in this file...
