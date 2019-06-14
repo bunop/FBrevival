@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct 31 11:51:07 2018
+Created on Fri Jun 14 16:29:00 2019
 
 @author: Paolo Cozzi <cozzi@ibba.cnr.it>
 """
 
 import os
 import sys
+import json
 import boto3
 import logging
 import argparse
@@ -35,9 +36,9 @@ config = TransferConfig(multipart_threshold=1 * GB, max_concurrency=5)
 class ProgressPercentage(object):
     """A callback to see progress percentage"""
 
-    def __init__(self, filename):
+    def __init__(self, filename, size):
         self._filename = filename
-        self._size = int(os.path.getsize(filename))
+        self._size = size
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
@@ -67,6 +68,15 @@ def exists(client, bucket, key):
     return True
 
 
+def dump_data(data):
+    json.dump(
+        data,
+        sys.stdout,
+        indent=2,
+        sort_keys=True,
+        default=str)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=('Upload data into digitalocean space')
@@ -75,7 +85,7 @@ def parse_args():
     parser.add_argument(
         "-i",
         "--input_dir",
-        help="Input directory to upload",
+        help="Input directory to download",
         required=True
     )
 
@@ -136,6 +146,11 @@ if __name__ == "__main__":
 
     logger.info("Got %s as directory" % args.input_dir)
 
+    # test for directory existance
+    if not os.path.exists(args.input_dir):
+        logger.info("Creating %s" % (args.input_dir))
+        os.mkdir(args.input_dir)
+
     session = boto3.session.Session()
 
     logger.info("connect to digitalocean endpoint")
@@ -148,31 +163,29 @@ if __name__ == "__main__":
         aws_access_key_id=args.space_key_name,
         aws_secret_access_key=args.space_key_secret)
 
-    for myfile in os.listdir(args.input_dir):
-        path = os.path.join(args.input_dir, myfile)
+    # get bucket data
+    data = client.list_objects(Bucket=args.bucket)
 
-        if os.path.isdir(path):
-            logger.warning("Skipping %s: is a directory" % (path))
+    # dump object
+    # dump_data(data)
+
+    for file_object in data["Contents"]:
+        # get the key (path)
+        path = file_object["Key"]
+        size = file_object["Size"]
+
+        # test for file existance
+        if os.path.exists(path):
+            logger.warning("Skipping %s" % (path))
             continue
 
-        if exists(client, args.bucket, path):
-            logger.warning("Skipping %s: already uploaded" % (path))
-            continue
-
-        logger.info("Loading '%s' into '%s' space" % (path, args.bucket))
-
-        # upload a file
-        client.upload_file(
-            Bucket=args.bucket,
-            Filename=path,
-            Key=path,
-            Callback=ProgressPercentage(path))
-
-        # debug
-        # break
-
-    # list file
-    # print(client.list_objects(Bucket='excange'))
+        # split key and test for input_dir
+        if path.split("/")[0] == args.input_dir:
+            client.download_file(
+                Bucket=args.bucket,
+                Filename=path,
+                Key=path,
+                Callback=ProgressPercentage(path, size))
 
     # debug
     logger.info("Done!")
