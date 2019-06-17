@@ -25,5 +25,6 @@
     - vim
     - nano
     - wget
+    - strace
   when: epel_installed is success
   tags: packages

@@ -1,0 +1,66 @@
+---
+# tasks file for openvz
+- name: Download openvz.repo
+  get_url:
+    url: http://ftp.openvz.org/openvz.repo
+    dest: /etc/yum.repos.d/openvz.repo
+    mode: '0644'
+  tags: ['packages', 'openvz']
+  register: OpenVZ_installed
+
+- name: Add OpenVZ Key
+  rpm_key:
+    state: present
+    key: http://ftp.openvz.org/RPM-GPG-Key-OpenVZ
+  tags: ['packages', 'openvz']
+
+- name: Add soluslabs repository
+  yum_repository:
+    name: Soluslab
+    description: Soluslab Repo
+    mirrorlist: http://repo.soluslabs.com/centos/mirrors-soluslabs
+    gpgcheck: no
+  tags: ['soluslabs', 'packages']
+  register: soluslabs_installed
+
+- name: Ensure a list of packages installed
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - vzkernel
+    - vzctl
+    - vzquota
+    - ploop
+    - vzdump
+  when:
+    - OpenVZ_installed is success
+    - soluslabs_installed is success
+  tags: packages
+
+- name: change Filesystem layout
+  lineinfile:
+    path: /etc/vz/vz.conf
+    regexp: '^VE_LAYOUT='
+    line: VE_LAYOUT=simfs
+  tags: configure
+
+- name: replace iptables
+  copy: src=iptables dest=/etc/sysconfig/iptables owner=root group=root
+  tags: configure
+
+- name: Copy bridge configuration
+  template:
+    src: ifcfg-br0.j2
+    dest: /etc/sysconfig/network-scripts/ifcfg-br0
+  tags: ['configure']
+
+- name: Copy eth0 configuration
+  template:
+    src: ifcfg-eth0.j2
+    dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+  tags: ['configure']
+
+- name: add vznet.conf
+  copy: src=vznet.conf dest=/etc/vz/vznet.conf owner=root group=root
+  tags: configure
