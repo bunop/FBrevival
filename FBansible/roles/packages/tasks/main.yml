@@ -1,5 +1,5 @@
 ---
-- name: Add repository
+- name: Add EPEL repository
   yum_repository:
     name: epel
     description: EPEL YUM repo

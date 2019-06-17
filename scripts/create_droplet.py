@@ -43,8 +43,8 @@ if not droplet_found:
     droplet = digitalocean.Droplet(
         name=droplet_name,
         region='fra1',
-        image='centos-7-x64',
-        size_slug='s-1vcpu-1gb',
+        image='centos-6-x64',
+        size_slug='s-1vcpu-2gb',
         ssh_keys=keys,
         monitoring=True
     )
@@ -72,10 +72,11 @@ else:
     logger.info("Skipping firewall configuration")
 
 # those are my current volumes
-# [<Volume: 1e770393-8e9a-11e9-b6f5-0a58ac14d04f fb-volume 7>]
+# manager.get_all_volumes()
+# [<Volume: 92abf77a-9106-11e9-b9db-0a58ac14d074 fb-volume 7>]
 
 # get a volume object
-volume = manager.get_volume("1e770393-8e9a-11e9-b6f5-0a58ac14d04f")
+volume = manager.get_volume("92abf77a-9106-11e9-b9db-0a58ac14d074")
 
 if droplet.id not in volume.droplet_ids:
     # add my droplet to this volume

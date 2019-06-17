@@ -17,7 +17,7 @@ volume = digitalocean.Volume(
     name="fb-volume",
     region="fra1",
     size_gigabytes=7,
-    filesystem_type="xfs",
+    filesystem_type="ext4",
     filesystem_label="fb-volume")
 
 # create a volume

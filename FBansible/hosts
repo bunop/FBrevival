@@ -21,4 +21,4 @@
 # anotherserver     ansible_host=192.168.0.10
 
 [fruitbreedomics]
-centos7     ansible_host=165.22.67.129
+centos6     ansible_host=142.93.103.171
