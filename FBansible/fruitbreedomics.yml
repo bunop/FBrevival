@@ -10,6 +10,8 @@
       tags: packages_role
     - role: andrewrothstein.miniconda
       tags: miniconda_role
+    - role: nginx
+      tags: nginx_role
     - role: openvz
       tags: openvz_role
 
