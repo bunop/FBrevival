@@ -46,7 +46,9 @@
   ignore_errors: yes
 
 - name: replace iptables
-  copy: src=iptables dest=/etc/sysconfig/iptables owner=root group=root
+  template:
+    src: iptables.j2
+    dest: /etc/sysconfig/iptables
   tags: configure
   notify:
     - restart iptables
@@ -72,45 +74,10 @@
 - name: Set default NETFILTER for new containers to full
   lineinfile: dest={{default_container_conf_file}} regexp="^NETFILTER"  line='NETFILTER="full"'
 
-# - name: Delete xguest user
-#   user: name=xguest state=absent remove=yes
-
 - name: Create container files dir
   file: path={{container_files_dir}} state=directory mode=700 owner=root group=root
   notify:
   - move_openvz_files
 
-# - name: Stop unwanted service and disable them
-#   service: name={{item}} state=stopped enabled=no
-#   with_items:
-#   - abrtd
-#   - abrt-ccpp
-#   - auditd
-#   - bluetooth
-#   - cgdcbxd
-#   - fcoe
-#   - fcoe-target
-#   - hypervfcopyd
-#   - hypervkvpd
-#   - hypervvssd
-#   - ibacm
-#   - ipmidetectd
-#   - iscsi
-#   - iscsid
-#   - isdn
-#   - lldpad
-#   - nfslock
-#   - pcscd
-#   - rpcbind
-#   - rpcgssd
-#   - sandbox
-#   - spice-vdagentd
-#   - tog-pegasus
-#   - trace-cmd
-#   ignore_errors: yes
-
 - name: Download OpenVZ template for CentOS-6-x86_64
   get_url: url={{centos_template_url}} dest=/vz/template/cache/centos-6-x86_64.tar.gz force=no
-
-- name: move_openvz_files
-  shell: 'mv /vz/* {{container_files_dir}} ; rmdir /vz;  ln -s {{container_files_dir}} /vz'

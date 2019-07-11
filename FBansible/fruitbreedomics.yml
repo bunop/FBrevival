@@ -3,11 +3,13 @@
   roles:
     # install with: ansible-galaxy install andrewsomething.do-agent
     - role: andrewsomething.do-agent
-      tags: do-agent
-    - volume
-    - packages
+      tags: do-agent_role
+    - role: volume
+      tags: volume_role
+    - role: packages
+      tags: packages_role
     - role: andrewrothstein.miniconda
-      tags: miniconda
+      tags: miniconda_role
     - role: openvz
       tags: openvz_role
 
