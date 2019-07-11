@@ -26,5 +26,7 @@
     - nano
     - wget
     - strace
+    - bind-utils
+    - nmap
   when: epel_installed is success
   tags: packages

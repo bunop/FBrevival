@@ -49,18 +49,18 @@
   copy: src=iptables dest=/etc/sysconfig/iptables owner=root group=root
   tags: configure
 
-- name: Copy bridge configuration
-  template:
-    src: ifcfg-br0.j2
-    dest: /etc/sysconfig/network-scripts/ifcfg-br0
-  tags: ['configure']
-
-- name: Copy eth0 configuration
-  template:
-    src: ifcfg-eth0.j2
-    dest: /etc/sysconfig/network-scripts/ifcfg-eth0
-  tags: ['configure']
-
-- name: add vznet.conf
-  copy: src=vznet.conf dest=/etc/vz/vznet.conf owner=root group=root
-  tags: configure
+# - name: Copy bridge configuration
+#   template:
+#     src: ifcfg-br0.j2
+#     dest: /etc/sysconfig/network-scripts/ifcfg-br0
+#   tags: ['configure']
+#
+# - name: Copy eth0 configuration
+#   template:
+#     src: ifcfg-eth0.j2
+#     dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+#   tags: ['configure']
+#
+# - name: add vznet.conf
+#   copy: src=vznet.conf dest=/etc/vz/vznet.conf owner=root group=root
+#   tags: configure
