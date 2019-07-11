@@ -1,2 +1,5 @@
 ---
 # vars file for openvz
+default_container_conf_file: /etc/vz/conf/ve-vswap-256m.conf-sample
+container_files_dir: /mnt/data1/openvz_files/
+centos_template_url: http://download.openvz.org/template/precreated/centos-6-x86_64.tar.gz

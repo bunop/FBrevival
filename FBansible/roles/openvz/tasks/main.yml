@@ -38,29 +38,79 @@
     - soluslabs_installed is success
   tags: packages
 
-- name: change Filesystem layout
-  lineinfile:
-    path: /etc/vz/vz.conf
-    regexp: '^VE_LAYOUT='
-    line: VE_LAYOUT=simfs
-  tags: configure
+- name: Disable SELinux in configuration file
+  lineinfile: dest=/etc/selinux/config regexp=^SELINUX= line=SELINUX=disabled
+
+- name: Disable SELinux for current boot
+  shell: setenforce 0
+  ignore_errors: yes
 
 - name: replace iptables
   copy: src=iptables dest=/etc/sysconfig/iptables owner=root group=root
   tags: configure
+  notify:
+    - restart iptables
 
-# - name: Copy bridge configuration
-#   template:
-#     src: ifcfg-br0.j2
-#     dest: /etc/sysconfig/network-scripts/ifcfg-br0
-#   tags: ['configure']
-#
-# - name: Copy eth0 configuration
-#   template:
-#     src: ifcfg-eth0.j2
-#     dest: /etc/sysconfig/network-scripts/ifcfg-eth0
-#   tags: ['configure']
-#
-# - name: add vznet.conf
-#   copy: src=vznet.conf dest=/etc/vz/vznet.conf owner=root group=root
-#   tags: configure
+- name: Enable packet forwarding in sysctl.conf file
+  lineinfile: dest=/etc/sysctl.conf regexp="^net.ipv4.ip_forward"  line="net.ipv4.ip_forward = 1"
+
+- name: Enable packet forwarding for current run
+  shell: sysctl net.ipv4.ip_forward=1
+
+- name: Configure OpenVZ to automatically add or remove bridged interfaces to corresponding bridges
+  lineinfile: dest=/etc/vz/vznet.conf line='EXTERNAL_SCRIPT="/usr/sbin/vznetaddbr"' create=yes
+
+- name: Configure default OpenVZ layout as simfs instead of ploop
+  lineinfile: dest=/etc/vz/vz.conf regexp="^VE_LAYOUT="  line="VE_LAYOUT=simfs"
+
+- name: Configure default OpenVZ template to use 64-bit version
+  lineinfile: dest=/etc/vz/vz.conf regexp="^DEF_OSTEMPLATE="  line='DEF_OSTEMPLATE="centos-6-x86_64"'
+
+- name: Enable various IP tables state modules in base machine
+  lineinfile: dest=/etc/modprobe.d/openvz.conf regexp="^options" line="options nf_conntrack ip_conntrack_disable_ve0=0"
+
+- name: Set default NETFILTER for new containers to full
+  lineinfile: dest={{default_container_conf_file}} regexp="^NETFILTER"  line='NETFILTER="full"'
+
+# - name: Delete xguest user
+#   user: name=xguest state=absent remove=yes
+
+- name: Create container files dir
+  file: path={{container_files_dir}} state=directory mode=700 owner=root group=root
+  notify:
+  - move_openvz_files
+
+# - name: Stop unwanted service and disable them
+#   service: name={{item}} state=stopped enabled=no
+#   with_items:
+#   - abrtd
+#   - abrt-ccpp
+#   - auditd
+#   - bluetooth
+#   - cgdcbxd
+#   - fcoe
+#   - fcoe-target
+#   - hypervfcopyd
+#   - hypervkvpd
+#   - hypervvssd
+#   - ibacm
+#   - ipmidetectd
+#   - iscsi
+#   - iscsid
+#   - isdn
+#   - lldpad
+#   - nfslock
+#   - pcscd
+#   - rpcbind
+#   - rpcgssd
+#   - sandbox
+#   - spice-vdagentd
+#   - tog-pegasus
+#   - trace-cmd
+#   ignore_errors: yes
+
+- name: Download OpenVZ template for CentOS-6-x86_64
+  get_url: url={{centos_template_url}} dest=/vz/template/cache/centos-6-x86_64.tar.gz force=no
+
+- name: move_openvz_files
+  shell: 'mv /vz/* {{container_files_dir}} ; rmdir /vz;  ln -s {{container_files_dir}} /vz'

@@ -1,2 +1,7 @@
 ---
 # handlers file for openvz
+- name: restart iptables
+  service: name=iptables state=restarted
+
+- name: Reboot machine for changes to take effect
+  shell: shutdown -r now

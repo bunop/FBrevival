@@ -28,5 +28,6 @@
     - strace
     - bind-utils
     - nmap
+    - tree
   when: epel_installed is success
   tags: packages
