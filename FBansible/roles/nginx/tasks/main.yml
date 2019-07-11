@@ -1,16 +1,7 @@
 ---
 # tasks file for nginx
-- name: Ensure a list of packages installed
-  yum:
-    name: "{{ packages }}"
-  vars:
-    packages:
-    - nginx
-  when: epel_installed is success
-  tags: packages
-  notify:
-    #  This notifies any Handler named "Start Nginx" after the Task is run.
-    - Start Nginx
+- name: Start Nginx
+  service: name=nginx state=started
 
 - name: Copy FruitBreedomics configuration file
   copy: src=fruitbreedomics.conf dest=/etc/nginx/default.d owner=root group=root

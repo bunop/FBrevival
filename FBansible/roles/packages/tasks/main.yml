@@ -29,5 +29,6 @@
     - bind-utils
     - nmap
     - tree
+    - nginx
   when: epel_installed is success
   tags: packages
